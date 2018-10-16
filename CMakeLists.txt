@@ -30,8 +30,8 @@ elseif (WIN32)
  SET(LIBUSB_LIBRARIES_REL ${LIBUSB_LIBRARIES_DIR_REL}/lib/libusb-1.0.lib)
 endif()
 
-INCLUDE_DIRECTORIES(../protodef)
-INCLUDE_DIRECTORIES(../protodef/cpp)
+INCLUDE_DIRECTORIES(./protodef)
+INCLUDE_DIRECTORIES(./protodef/cpp)
 
 # Find the QtWidgets library
 find_package(Qt5Widgets CONFIG REQUIRED)
@@ -43,7 +43,7 @@ set(update_tools_SRCS
     main.cpp
     usbdevicelistmodel.cpp
     upgradeThread.cpp
-    ../protodef/cpp/messages.pb.cc
+    ./protodef/cpp/messages.pb.cc
 )
 add_executable(update_tools WIN32 ${update_tools_SRCS})
 target_link_libraries(update_tools Qt5::Widgets)
