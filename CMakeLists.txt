@@ -2,12 +2,17 @@ cmake_minimum_required(VERSION 3.10)
 
 project(update_tools)
 
+if (STATIC_BUILD)
+SET( Protobuf_USE_STATIC_LIBS ON )
+endif (STATIC_BUILD)
+
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed
 set(CMAKE_AUTOMOC ON)
 # Create code from a list of Qt designer ui files
 set(CMAKE_AUTOUIC ON)
+set(CMAKE_MACOSX_BUNDLE TRUE)
 FIND_PACKAGE (Protobuf REQUIRED)
 
 if (UNIX)
