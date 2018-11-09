@@ -7,6 +7,10 @@
 #include <QThread>
 #include <libusb.h>
 
+#define KEYBOX2_VENDOR_ID 0xb6ab
+#define KEYBOX2_PRODUCT_ID 0xbaeb
+#define KEYBOX2_BCD_DEVICE 0x0001
+
 class UpgradeThread : public QThread
 {
     Q_OBJECT
@@ -14,6 +18,8 @@ class UpgradeThread : public QThread
  public:
     enum UpgradeState{
         UPGRADE_FILE_CONTENT_INVALID,
+        UPGRADE_WAIT_USB_DEVICE,
+        UPGRADE_USB_DEVICE_TOO_MANY,
         UPGRADE_DEVICE_STATE_ERROR,
         UPGRADE_SENDING_REQUEST, // 第一步
         UPGRADE_SENDING_CONTENT, // 第二步
@@ -34,8 +40,7 @@ class UpgradeThread : public QThread
     };
 public:
     UpgradeThread(QObject *parent, 
-        const QByteArray &upgradeFileContent,
-        libusb_device * dev
+        const QByteArray &upgradeFileContent
     );
     ~UpgradeThread();
     void cancel();
@@ -48,7 +53,27 @@ signals:
 private:
     bool mCancelled;
     QByteArray mFileContent;
+
+    // step 1:
+    bool waitDeviceConnect();
+
+    // step 2
+    bool sendLockSerialCmd();
+    // step 3
+    bool readDeviceReply();
+    // final stage
+    void cleanup();
+
+    // return 0, no device
+    // return 1, one device
+    // return 2, two device
+    int scanUsbDevice();
+
+    bool checkDeviceMode();
+    // run state
     libusb_device * mDevice;
+    libusb_device_handle *mHandle;
+    UpgradeProgress mProgress;
 };
 
 Q_DECLARE_METATYPE(UpgradeThread::UpgradeProgress);

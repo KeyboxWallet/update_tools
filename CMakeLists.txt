@@ -46,7 +46,6 @@ set(update_tools_SRCS
     mainwindow.ui
     mainwindow.cpp
     main.cpp
-    usbdevicelistmodel.cpp
     upgradeThread.cpp
     ./protodef/cpp/messages.pb.cc
 )

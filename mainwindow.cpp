@@ -10,19 +10,16 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     int ret;
 
-    mDevList = new UsbDeviceListModel();
     ret = libusb_init(NULL);
     ui->setupUi(this);
     mUpgradeFilePath = QString::fromUtf8("");
     /// ui->listView->setModel(mDevList);
     connect(ui->seletFileButton, &QPushButton::clicked, this, &MainWindow::selectUpgradeFile);
-    connect(ui->reScanButton, &QPushButton::clicked, this, &MainWindow::scanUSBDevices);
     connect(ui->upgradeButton, &QPushButton::clicked, this, &MainWindow::upgrade);
 
     ui->upgradeProcess->setMinimum(0);
     ui->upgradeProcess->setMaximum(100);
     ui->upgradeProcess->setValue(0);
-    ui->listView->setSelectionMode(QAbstractItemView::SingleSelection);
 
     qRegisterMetaType<UpgradeThread::UpgradeProgress>();
 }
@@ -30,44 +27,6 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
-    delete mDevList;
-}
-
-void MainWindow::scanUSBDevices()
-{
-    libusb_device * keybox_devices[5];
-    libusb_device **list;
-    // libusb_device *found = NULL;
-     ssize_t cnt = libusb_get_device_list(NULL, &list);
-
-    libusb_device * device;
-     struct libusb_device_descriptor descriptor;
-
-     int dev_cnt = 0;
-     for(int i=0; i<cnt && dev_cnt < 5; i++){
-         device = list[i];
-         int err = libusb_get_device_descriptor(device, &descriptor);
-
-         if (err) {
-             continue;
-         }
-         if (    descriptor.idVendor == KEYBOX2_VENDOR_ID
-             &&  descriptor.idProduct == KEYBOX2_PRODUCT_ID
-             &&  descriptor.bcdDevice == KEYBOX2_BCD_DEVICE
-             ) {
-                 keybox_devices[dev_cnt++] = libusb_ref_device(device);
-         }
-     }
-    /*
-    UsbDeviceListModel *model = new QStringListModel();
-    QStringList l;
-    */
-    ui->usbCountLabel->setText(QString::fromUtf8("usb:%1").arg( dev_cnt));
-     emit mDevList->layoutAboutToBeChanged();
-     mDevList->setAllData(keybox_devices, dev_cnt);
-     emit mDevList->layoutChanged();
-    libusb_free_device_list(list, true);
-     ui->listView->setModel(mDevList);
 }
 
 
@@ -79,15 +38,6 @@ void MainWindow::selectUpgradeFile()
 
 void MainWindow::upgrade()
 {
-    QItemSelectionModel * model = ui->listView->selectionModel();
-    QModelIndexList indexes;
-    if( model )
-        indexes = model ->selectedIndexes();
-    if(indexes.size() != 1){
-        ui->upgradeStatus->setText(QString::fromUtf8("请选择一个设备"));
-        return;
-    }
-
     // readFile
     if( mUpgradeFilePath.isEmpty() || mUpgradeFilePath.isNull()){
         ui->upgradeStatus ->setText(QString::fromUtf8("请选择升级文件"));
@@ -107,7 +57,7 @@ void MainWindow::upgrade()
     }
 
     ui->upgradeButton->setDisabled(true);
-    mThread = new UpgradeThread(this,blob, mDevList->getDevice( indexes[0].row()) );
+    mThread = new UpgradeThread(this,blob);
     connect(mThread, &UpgradeThread::stateChanged, this, &MainWindow::upgradeStatusChanged);
     connect(mThread, &QThread::finished, mThread, &QObject::deleteLater);
 
@@ -122,6 +72,16 @@ void MainWindow::upgradeStatusChanged(const UpgradeThread::UpgradeProgress & pro
         ui->upgradeButton->setEnabled(true);
         return;
     }
+    if (state == UpgradeThread::UPGRADE_WAIT_USB_DEVICE) {
+        ui->upgradeStatus->setText(QString::fromUtf8("扫描keybox中，请确保接入设备"));
+        return;
+    }
+    if (state == UpgradeThread::UPGRADE_USB_IO_ERROR) {
+        ui->upgradeStatus ->setText(QString::fromUtf8("读取失败:IO错误:").append(progress.description));
+        ui->upgradeButton->setEnabled(true);
+        return;
+    }
+
     if (state == UpgradeThread::UPGRADE_USB_IO_ERROR) {
         ui->upgradeStatus ->setText(QString::fromUtf8("升级失败:IO错误:").append(progress.description));
         ui->upgradeButton->setEnabled(true);
