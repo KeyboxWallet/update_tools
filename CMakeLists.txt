@@ -68,6 +68,7 @@ set(update_tools_SRCS
     ./protodef/cpp/messages.pb.cc
     icon.icns
     icon.ico
+	update_tools.rc
 )
 add_executable(update_tools WIN32 ${update_tools_SRCS})
 target_link_libraries(update_tools Qt5::Widgets)

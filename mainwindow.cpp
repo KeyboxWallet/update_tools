@@ -9,6 +9,11 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+	auto appPath = QCoreApplication::applicationDirPath();
+#ifdef _WIN32
+	QIcon icon(appPath + "/icon.ico");
+	setWindowIcon(icon);
+#endif
     int ret;
 
     ret = libusb_init(NULL);
