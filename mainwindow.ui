@@ -10,12 +10,6 @@
     <height>368</height>
    </rect>
   </property>
-  <property name="font">
-   <font>
-    <family>Songti SC</family>
-    <pointsize>18</pointsize>
-   </font>
-  </property>
   <property name="windowTitle">
    <string>KeyBox 升级工具</string>
   </property>
@@ -23,10 +17,10 @@
    <widget class="QWidget" name="verticalLayoutWidget">
     <property name="geometry">
      <rect>
-      <x>0</x>
-      <y>-1</y>
+      <x>10</x>
+      <y>30</y>
       <width>441</width>
-      <height>291</height>
+      <height>241</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="vLayout">
@@ -34,6 +28,12 @@
       <layout class="QHBoxLayout" name="hLayout1">
        <item>
         <widget class="QPushButton" name="seletFileButton">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
          <property name="text">
           <string>选择文件</string>
          </property>
@@ -73,6 +73,18 @@
      </item>
      <item>
       <widget class="QPushButton" name="upgradeButton">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>40</height>
+        </size>
+       </property>
+       <property name="sizeIncrement">
+        <size>
+         <width>0</width>
+         <height>30</height>
+        </size>
+       </property>
        <property name="text">
         <string>开始升级</string>
        </property>
