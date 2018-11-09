@@ -2,6 +2,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <libusb.h>
+#include <QDir>
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -13,7 +14,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ret = libusb_init(NULL);
     ui->setupUi(this);
     mUpgradeFilePath = QString::fromUtf8("");
-    /// ui->listView->setModel(mDevList);
     connect(ui->seletFileButton, &QPushButton::clicked, this, &MainWindow::selectUpgradeFile);
     connect(ui->upgradeButton, &QPushButton::clicked, this, &MainWindow::upgrade);
 
@@ -33,7 +33,10 @@ MainWindow::~MainWindow()
 void MainWindow::selectUpgradeFile()
 {
     mUpgradeFilePath = QFileDialog::getOpenFileName(this, "选择升级文件");
-    ui->fileNameEdit->setText(mUpgradeFilePath);
+    auto parts = mUpgradeFilePath.split(QDir::separator());
+    auto fileName = parts[parts.size() - 1];
+    ui->fileNameEdit->setText(fileName);
+    ui->fileNameEdit->setEnabled(false);
 }
 
 void MainWindow::upgrade()
@@ -128,12 +131,4 @@ void MainWindow::upgradeStatusChanged(const UpgradeThread::UpgradeProgress & pro
         ui->upgradeButton->setEnabled(true);
         return;
     }
-
-    /*
-    if(state == UpgradeThread::UPGRADE_FINISHED){
-        ui->upgradeProcess->setValue(100);
-        ui->upgradeStatus->setText(QString::fromUtf8("升级成功"));
-        ui->upgradeButton->setEnabled(true);
-        return;
-    }*/
 }

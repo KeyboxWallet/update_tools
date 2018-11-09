@@ -13,6 +13,24 @@ set(CMAKE_AUTOMOC ON)
 # Create code from a list of Qt designer ui files
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_MACOSX_BUNDLE TRUE)
+
+SET(MACOSX_BUNDLE_INFO_STRING "keybox updtate tools")
+SET(MACOSX_BUNDLE_ICON_FILE "icon")
+SET(MACOSX_BUNDLE_GUI_IDENTIFIER keyboxd_update_tools)
+SET(MACOSX_BUNDLE_LONG_VERSION_STRING "0.9.0")
+SET(MACOSX_BUNDLE_BUNDLE_NAME "keybox update tools")
+SET(MACOSX_BUNDLE_SHORT_VERSION_STRING "0.9.0")
+SET(MACOSX_BUNDLE_BUNDLE_VERSION "0.9.0")
+SET(MACOSX_BUNDLE_COPYRIGHT "MIT, by keybox team")
+
+set( ICON_NAME "icon.icns" )
+set( ICON_PATH "${PROJECT_SOURCE_DIR}/${ICON_NAME}" )
+
+SET_SOURCE_FILES_PROPERTIES(${ICON_PATH} PROPERTIES
+                             MACOSX_PACKAGE_LOCATION Resources)
+SET_SOURCE_FILES_PROPERTIES("${PROJECT_SOURCE_DIR}/icon.ico" PROPERTIES VS_COPY_TO_OUT_DIR Always)
+
+
 FIND_PACKAGE (Protobuf REQUIRED)
 
 if (UNIX)
@@ -48,6 +66,8 @@ set(update_tools_SRCS
     main.cpp
     upgradeThread.cpp
     ./protodef/cpp/messages.pb.cc
+    icon.icns
+    icon.ico
 )
 add_executable(update_tools WIN32 ${update_tools_SRCS})
 target_link_libraries(update_tools Qt5::Widgets)
