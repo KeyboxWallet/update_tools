@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>KeyBox 升级工具</string>
+   <string>Keybox upgrade tools</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <widget class="QWidget" name="verticalLayoutWidget">
@@ -35,7 +35,7 @@
           </size>
          </property>
          <property name="text">
-          <string>选择文件</string>
+          <string>select file</string>
          </property>
         </widget>
        </item>
@@ -60,7 +60,7 @@
         </size>
        </property>
        <property name="text">
-        <string>升级状态</string>
+        <string>upgrade status</string>
        </property>
       </widget>
      </item>
@@ -86,7 +86,7 @@
         </size>
        </property>
        <property name="text">
-        <string>开始升级</string>
+        <string>start upgrade</string>
        </property>
       </widget>
      </item>

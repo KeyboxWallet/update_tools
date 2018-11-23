@@ -3,6 +3,7 @@
 #include "ui_mainwindow.h"
 #include <libusb.h>
 #include <QDir>
+#include <QtDebug>
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -18,7 +19,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ret = libusb_init(NULL);
     ui->setupUi(this);
-    mUpgradeFilePath = QString::fromUtf8("");
+    mUpgradeFilePath = "";
     connect(ui->seletFileButton, &QPushButton::clicked, this, &MainWindow::selectUpgradeFile);
     connect(ui->upgradeButton, &QPushButton::clicked, this, &MainWindow::upgrade);
 
@@ -37,7 +38,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::selectUpgradeFile()
 {
-    mUpgradeFilePath = QFileDialog::getOpenFileName(this, "选择升级文件");
+    mUpgradeFilePath = QFileDialog::getOpenFileName(this, tr("Select upgrade file"));
     auto parts = mUpgradeFilePath.split(QDir::separator());
     auto fileName = parts[parts.size() - 1];
     ui->fileNameEdit->setText(fileName);
@@ -48,25 +49,25 @@ void MainWindow::upgrade()
 {
     // readFile
     if( mUpgradeFilePath.isEmpty() || mUpgradeFilePath.isNull()){
-        ui->upgradeStatus ->setText(QString::fromUtf8("请选择升级文件"));
+        ui->upgradeStatus ->setText(tr("Please select upgrade file."));
         return;
     }
 
     QFile file(mUpgradeFilePath);
     if (!file.open(QIODevice::ReadOnly)) {
-        ui->upgradeStatus ->setText(QString::fromUtf8("无法打开文件"));
+        ui->upgradeStatus ->setText(tr("can't open file."));
         return;
     }
     QByteArray blob = file.readAll();
 
     if( blob.length() < 1024){
-        ui->upgradeStatus ->setText(QString::fromUtf8("文件太小"));
+        ui->upgradeStatus ->setText(tr("file too small."));
         return;
     }
 
     ui->upgradeButton->setDisabled(true);
     mThread = new UpgradeThread(this,blob);
-    connect(mThread, &UpgradeThread::stateChanged, this, &MainWindow::upgradeStatusChanged);
+    connect(mThread, &UpgradeThread::stateChanged, this, &MainWindow::upgradeStatusChanged, Qt::BlockingQueuedConnection);
     connect(mThread, &QThread::finished, mThread, &QObject::deleteLater);
 
     mThread->start();
@@ -74,66 +75,72 @@ void MainWindow::upgrade()
 
 void MainWindow::upgradeStatusChanged(const UpgradeThread::UpgradeProgress & progress)
 {
+    qDebug() << "changed:" << progress.state;
     UpgradeThread::UpgradeState state = progress.state;
     if( state == UpgradeThread::UPGRADE_FILE_CONTENT_INVALID) {
-        ui->upgradeStatus ->setText(QString::fromUtf8("非法文件").append(progress.description));
+        ui->upgradeStatus ->setText(tr("invalid file").append(progress.description));
         ui->upgradeButton->setEnabled(true);
+        update();
         return;
     }
     if (state == UpgradeThread::UPGRADE_WAIT_USB_DEVICE) {
-        ui->upgradeStatus->setText(QString::fromUtf8("扫描keybox中，请确保接入设备"));
+        ui->upgradeStatus->setText(tr("scanning keybox, please connect it to this pc via USB"));
+        update();
         return;
     }
     if (state == UpgradeThread::UPGRADE_USB_IO_ERROR) {
-        ui->upgradeStatus ->setText(QString::fromUtf8("读取失败:IO错误:").append(progress.description));
+        ui->upgradeStatus ->setText(tr("Upgrade: IO error:").append(progress.description));
         ui->upgradeButton->setEnabled(true);
+        update();
         return;
     }
 
-    if (state == UpgradeThread::UPGRADE_USB_IO_ERROR) {
-        ui->upgradeStatus ->setText(QString::fromUtf8("升级失败:IO错误:").append(progress.description));
-        ui->upgradeButton->setEnabled(true);
-        return;
-    }
     if (state == UpgradeThread::UPGRADE_USB_PROTOCOL_ERROR) {
-        ui->upgradeStatus->setText(QString::fromUtf8("升级失败，协议错误").append(progress.description));
+        ui->upgradeStatus->setText(tr("Upgrade Failed: protocol error:").append(progress.description));
         ui->upgradeButton->setEnabled(true);
+        update();
         return;
     }
     if (state == UpgradeThread::UPGRADE_DEVICE_STATE_ERROR) {
-        ui->upgradeStatus->setText(QString::fromUtf8("请操作设备，重启到bootloader模式").append(progress.description));
+        ui->upgradeStatus->setText(tr("Please reboot device to bootloader mode:").append(progress.description));
         ui->upgradeButton->setEnabled(true);
+        update();
         return;
     }
     if (state == UpgradeThread::UPGRADE_SENDING_REQUEST) {
         ui->upgradeProcess->setValue(2);
-        ui->upgradeStatus->setText(QString::fromUtf8("已请求，请同意升级"));
-        ui->versionInfo->setText(QString::fromUtf8("设备版本: %1, 目标版本: %2")
+        ui->upgradeStatus->setText(tr("Upgrade Request sent, please agree on device."));
+        ui->versionInfo->setText(tr("Device version: %1, target version: %2")
                                  .arg(progress.currentFirmwareVersion)
                                  .arg(progress.targetFirmwareVersion));
+        update();
         return;
     }
 
     if (state == UpgradeThread::UPGRADE_USER_REJECTED) {
-        ui->upgradeStatus ->setText(QString::fromUtf8("升级失败，已被拒绝:").append(progress.description));
+        ui->upgradeStatus ->setText(tr("Upgrade Failed，Rejected by user:").append(progress.description));
         ui->upgradeButton->setEnabled(true);
+        update();
         return;
     }
 
     if(state == UpgradeThread::UPGRADE_SENDING_CONTENT) {
          ui->upgradeProcess->setValue(10 + (int)80*progress.currentSendOffset / progress.upgradeFileLen);
-         ui->upgradeStatus ->setText(QString::fromUtf8("正在发送升级文件..."));
+         ui->upgradeStatus ->setText(tr("Sending firmware..."));
+         update();
          return;
     }
     if(state == UpgradeThread::UPGRADE_SENT_FINISHED) {
         ui->upgradeProcess->setValue(90);
-        ui->upgradeStatus->setText(QString::fromUtf8("发送完成，等待设备确认..."));
+        ui->upgradeStatus->setText(tr("Send finished, waiting confirm."));
+        update();
         return;
     }
     if(state == UpgradeThread::UPGRADE_WAITING_DEVICE_WRITE) {
         ui->upgradeProcess->setValue(100);
-        ui->upgradeStatus->setText(QString::fromUtf8("请观察设备，烧写完新固件则升级成功"));
+        ui->upgradeStatus->setText(tr("Please watch device and wait for upgrade complete."));
         ui->upgradeButton->setEnabled(true);
+        update();
         return;
     }
 }
