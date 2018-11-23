@@ -97,7 +97,7 @@ bool UpgradeThread::checkDeviceMode()
         err = libusb_claim_interface(mHandle, 0);
     }
     if ( err) {
-        //libusb_close(mHandle);
+        cleanup();
         mProgress.state = UPGRADE_USB_IO_ERROR;
         mProgress.description = QString::fromUtf8("claim");
         emit stateChanged(mProgress);
@@ -196,7 +196,7 @@ UpgradeThread::UpgradeThread(QObject *parent,
 
 UpgradeThread::~UpgradeThread()
 {
-    libusb_unref_device(mDevice);
+    cleanup();
 }
 
 void UpgradeThread::run(){
@@ -280,7 +280,7 @@ void UpgradeThread::run(){
         err = libusb_interrupt_transfer(mHandle, 1, usb_pkg, 1024, &transferred, 2000);
     #endif
     if (err || transferred != 1024) {
-        libusb_close(mHandle);
+        cleanup();
         mProgress.state = UPGRADE_USB_IO_ERROR;
         mProgress.description = QString::fromUtf8("write %1 %2").arg(err).arg(transferred);
         emit stateChanged(mProgress);
@@ -296,7 +296,7 @@ void UpgradeThread::run(){
             continue;
         }
         if (err || transferred != 1024) {
-            libusb_close(mHandle);
+            cleanup();
             mProgress.state = UPGRADE_USB_IO_ERROR;
             mProgress.description = QString::fromUtf8("read %1 %2").arg(err).arg(transferred);
             emit stateChanged(mProgress);
@@ -328,7 +328,7 @@ void UpgradeThread::run(){
 
 
     if( msgType == MsgTypeRequestRejected) {
-        libusb_close(mHandle);
+        cleanup();
         mProgress.state = UPGRADE_USER_REJECTED;
         mProgress.description = QString::fromUtf8(" ");
         emit stateChanged(mProgress);
@@ -336,7 +336,7 @@ void UpgradeThread::run(){
     }
 
     if( msgType != MsgTypeGenericConfirmReply) {
-        libusb_close(mHandle);
+        cleanup();
         mProgress.state = UPGRADE_USB_PROTOCOL_ERROR;
         mProgress.description = QString::fromUtf8("msgtype exp %1 real %2").arg(MsgTypeGenericConfirmReply).arg(msgType);
         emit stateChanged(mProgress);
@@ -410,7 +410,7 @@ void UpgradeThread::run(){
             err = libusb_interrupt_transfer(mHandle, 1, usb_pkg, 1024, &transferred, 2000);
         #endif
         if (err || transferred != 1024) {
-            libusb_close(mHandle);
+            cleanup();
             mProgress.state = UPGRADE_USB_IO_ERROR;
             mProgress.description = QString::fromUtf8("write %1 %2").arg(err).arg(transferred);
             emit stateChanged(mProgress);
@@ -431,7 +431,7 @@ void UpgradeThread::run(){
                    offset -= copyLen;
                    continue;
                }
-               libusb_close(mHandle);
+               cleanup();
                mProgress.state = UPGRADE_USB_IO_ERROR;
                mProgress.description = QString::fromUtf8("read %1 %2").arg(err).arg(transferred);
                emit stateChanged(mProgress);
@@ -444,7 +444,7 @@ void UpgradeThread::run(){
             memcpy(&readOffset, usb_pkg+1, 4);
             readOffset = ntohl(readOffset);
             if( usb_pkg[0] != 4 || readOffset != offset) {
-                libusb_close(mHandle);
+                cleanup();
                 mProgress.state = UPGRADE_USB_PROTOCOL_ERROR;
                 mProgress.description = QString::fromUtf8("%1 != %2 or %3 != %4")
                         .arg(4)
@@ -462,7 +462,7 @@ void UpgradeThread::run(){
         // next round
     }
     if( mCancelled) {
-        libusb_close(mHandle);
+        cleanup();
         return;
     }
     // 读取最后的包
@@ -479,7 +479,7 @@ void UpgradeThread::run(){
         }
         if (err || transferred != 1024) {
             if( err != LIBUSB_ERROR_NOT_FOUND){
-                libusb_close(mHandle);
+                cleanup();
             }
             mProgress.state = UPGRADE_USB_IO_ERROR;
             mProgress.description = QString::fromUtf8("read %1 %2").arg(err).arg(transferred);
@@ -497,7 +497,7 @@ void UpgradeThread::run(){
     }
   #if PROTO_MOCK_TEST != 1
     if( err == LIBUSB_ERROR_TIMEOUT || err == LIBUSB_ERROR_IO) {
-        libusb_close(mHandle);
+        cleanup();
         mProgress.state = UPGRADE_WAITING_DEVICE_WRITE;
         emit stateChanged(mProgress);
         return;
@@ -514,7 +514,7 @@ void UpgradeThread::run(){
     msgLen = htonl(msgLen);
 
     if( msgType == MsgTypeRequestRejected) {
-        libusb_close(mHandle);
+        cleanup();
         mProgress.state = UPGRADE_USER_REJECTED;
         // mProgress.description = QString::fromUtf8(" ");
         mProgress.description = QString::fromUtf8("firmware error.");
@@ -523,7 +523,7 @@ void UpgradeThread::run(){
     }
 
     if( msgType != MsgTypeGenericConfirmReply) {
-        libusb_close(mHandle);
+        cleanup();
         mProgress.state = UPGRADE_USB_PROTOCOL_ERROR;
         mProgress.description = QString::fromUtf8("msgtype exp %1 real %2").arg(MsgTypeGenericConfirmReply).arg(msgType);
         emit stateChanged(mProgress);
@@ -533,6 +533,6 @@ void UpgradeThread::run(){
  #endif
     mProgress.state = UPGRADE_FINISHED;
     emit stateChanged(mProgress);
-    libusb_close(mHandle);
+    cleanup();
 
 }
