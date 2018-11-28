@@ -58,6 +58,7 @@ INCLUDE_DIRECTORIES(./protodef/cpp)
 
 # Find the QtWidgets library
 find_package(Qt5Widgets CONFIG REQUIRED)
+find_package(Qt5Network CONFIG REQUIRED)
 
 # Populate a CMake variable with the sources
 set(update_tools_SRCS
@@ -71,7 +72,7 @@ set(update_tools_SRCS
 	update_tools.rc
 )
 add_executable(update_tools WIN32 ${update_tools_SRCS})
-target_link_libraries(update_tools Qt5::Widgets)
+target_link_libraries(update_tools Qt5::Widgets Qt5::Network)
 
 target_compile_options (update_tools PUBLIC ${LIBUSB_CFLAGS} )
 TARGET_LINK_LIBRARIES(update_tools ${Protobuf_LIBRARIES})

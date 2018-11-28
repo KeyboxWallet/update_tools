@@ -28,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->upgradeProcess->setValue(0);
 
     qRegisterMetaType<UpgradeThread::UpgradeProgress>();
+    connect(&mNetworkManager, &QNetworkAccessManager::finished, this, &MainWindow::downloadFinished);
 }
 
 MainWindow::~MainWindow()
@@ -35,6 +36,98 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::downloadUpgradeFile()
+{
+    QUrl jsonUrl("https://keybox.magicw.net/versions.json");
+    QNetworkRequest versionReq(jsonUrl);
+    jsonReply = mNetworkManager.get(versionReq);
+    // connect(jsonReply, &QNetworkReply::finished, this, &MainWindow::jsonDownloadFinished);
+}
+
+bool isHttpRedirect(QNetworkReply *reply)
+{
+    int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    return statusCode == 301 || statusCode == 302 || statusCode == 303
+           || statusCode == 305 || statusCode == 307 || statusCode == 308;
+}
+
+
+bool saveToDisk(const QString &filename, QIODevice *data)
+{
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly )) {
+        fprintf(stderr, "Could not open %s for writing: %s\n",
+                qPrintable(filename),
+                qPrintable(file.errorString()));
+        return false;
+    }
+
+    file.write(data->readAll());
+    file.close();
+
+    return true;
+}
+
+QString getSaveFileName(const QUrl & url)
+{
+    QString path = url.path();
+    QString basename = QFileInfo(path).fileName();
+
+    if (basename.isEmpty())
+        basename = "download";
+
+    QDir dataLoc = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    dataLoc.mkpath(".");
+
+    return dataLoc.absolutePath().append(QDir::separator()).append( basename);
+
+}
+
+
+void MainWindow::downloadFinished(QNetworkReply *reply)
+{
+  if (reply->error()) {
+        ui->upgradeStatus ->setText(tr("download error: ") + reply->errorString());
+        return;
+  }
+  if (isHttpRedirect(reply)) {
+      // fputs("Request was redirected.\n", stderr);
+      mNetworkManager.get(QNetworkRequest (QUrl(reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toString())));
+      return;
+  }
+  if (reply->url().path() == "/versions.json") {
+
+    QJsonDocument versionDoc  = QJsonDocument::fromJson(reply->readAll());
+    QJsonObject versionJson = versionDoc.object();
+    QJsonValue firmwares = versionJson["firmwares"];
+    QJsonValue keybox1 = firmwares["keybox1"];
+    QString latestVersion = keybox1["version"].toString();
+    QString firmwareUrl = keybox1["url"].toString();
+
+    ui->upgradeStatus ->setText(tr("downloading firmware :") + latestVersion);
+    mNetworkManager.get(QNetworkRequest(QUrl(firmwareUrl)));
+    return;
+  }
+  // a firmware in this case
+  QString firmwareFile = getSaveFileName(reply->url());
+
+  if( saveToDisk(firmwareFile, reply) ){
+      mUpgradeFilePath = firmwareFile;
+      ui->fileNameEdit->setText(mUpgradeFilePath);
+      ui->fileNameEdit->setEnabled(false);
+      upgrade();
+  }
+  else {
+
+  }
+
+}
+
+
+void MainWindow::downloadError(QNetworkReply::NetworkError code)
+{
+
+}
 
 void MainWindow::selectUpgradeFile()
 {
@@ -49,7 +142,8 @@ void MainWindow::upgrade()
 {
     // readFile
     if( mUpgradeFilePath.isEmpty() || mUpgradeFilePath.isNull()){
-        ui->upgradeStatus ->setText(tr("Please select upgrade file."));
+        // ui->upgradeStatus ->setText(tr("Please select upgrade file."));
+        downloadUpgradeFile();
         return;
     }
 

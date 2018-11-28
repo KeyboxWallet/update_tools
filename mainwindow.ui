@@ -40,7 +40,11 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="fileNameEdit"/>
+        <widget class="QLineEdit" name="fileNameEdit">
+         <property name="placeholderText">
+          <string>auto download latest firmware if left blank.</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>

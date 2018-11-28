@@ -3,7 +3,7 @@
 
 #include <QMainWindow>
 #include "upgradeThread.h"
-
+#include <QtNetwork>
 
 
 
@@ -23,13 +23,22 @@ public:
 public slots:
     void upgradeStatusChanged(const UpgradeThread::UpgradeProgress & progress);
 
+private slots:
+    void downloadFinished(QNetworkReply* rep);
+    void downloadError(QNetworkReply::NetworkError code);
+
+
 private:
     Ui::MainWindow *ui;
     void selectUpgradeFile();
     void upgrade();
+    void downloadUpgradeFile();
 
     QString mUpgradeFilePath;
     UpgradeThread *mThread;
+    QNetworkAccessManager mNetworkManager;
+    QNetworkReply *jsonReply;
+    QNetworkReply *firmwareReply;
 
 };
 
