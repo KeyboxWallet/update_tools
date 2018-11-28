@@ -124,8 +124,9 @@ void MainWindow::downloadFinished(QNetworkReply *reply)
       upgrade();
   }
   else {
-
+    ui->upgradeButton->setDisabled(false);
   }
+  ui->seletFileButton->setEnabled(true);
 
 }
 
@@ -158,6 +159,8 @@ void MainWindow::upgrade()
     // readFile
     if( mUpgradeFilePath.isEmpty() || mUpgradeFilePath.isNull()){
         // ui->upgradeStatus ->setText(tr("Please select upgrade file."));
+        ui->upgradeButton->setDisabled(true);
+        ui->seletFileButton->setDisabled(true);
         downloadUpgradeFile();
         return;
     }
