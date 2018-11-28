@@ -100,9 +100,9 @@ void MainWindow::downloadFinished(QNetworkReply *reply)
     QJsonDocument versionDoc  = QJsonDocument::fromJson(reply->readAll());
     QJsonObject versionJson = versionDoc.object();
     QJsonValue firmwares = versionJson["firmwares"];
-    QJsonValue keybox1 = firmwares["keybox1"];
-    QString latestVersion = keybox1["version"].toString();
-    QString firmwareUrl = keybox1["url"].toString();
+    QJsonValue keybox1 = firmwares.toObject()["keybox1"];
+    QString latestVersion = keybox1.toObject()["version"].toString();
+    QString firmwareUrl = keybox1.toObject()["url"].toString();
 
     ui->upgradeStatus ->setText(tr("downloading firmware :") + latestVersion);
     mNetworkManager.get(QNetworkRequest(QUrl(firmwareUrl)));
