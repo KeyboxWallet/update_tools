@@ -26,13 +26,14 @@ public slots:
 private slots:
     void downloadFinished(QNetworkReply* rep);
     void downloadError(QNetworkReply::NetworkError code);
-
+    void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
 
 private:
     Ui::MainWindow *ui;
     void selectUpgradeFile();
     void upgrade();
     void downloadUpgradeFile();
+    void upgradeFileSelected();
 
     QString mUpgradeFilePath;
     UpgradeThread *mThread;

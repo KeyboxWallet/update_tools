@@ -79,7 +79,7 @@ QString getSaveFileName(const QUrl & url)
     QDir dataLoc = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     dataLoc.mkpath(".");
 
-    return dataLoc.absolutePath().append(QDir::separator()).append( basename);
+    return dataLoc.absolutePath().append('/').append( basename);
 
 }
 
@@ -92,7 +92,12 @@ void MainWindow::downloadFinished(QNetworkReply *reply)
   }
   if (isHttpRedirect(reply)) {
       // fputs("Request was redirected.\n", stderr);
-      mNetworkManager.get(QNetworkRequest (QUrl(reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toString())));
+      auto r = mNetworkManager.get(QNetworkRequest (QUrl(reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toString())));
+      if( reply->url() == firmwareReply->url()) {
+            disconnect(firmwareReply, &QNetworkReply::downloadProgress, this, &MainWindow::downloadProgress);
+            firmwareReply = r;
+            connect(firmwareReply, &QNetworkReply::downloadProgress, this, &MainWindow::downloadProgress);
+      }
       return;
   }
   if (reply->url().path() == "/versions.json") {
@@ -105,16 +110,17 @@ void MainWindow::downloadFinished(QNetworkReply *reply)
     QString firmwareUrl = keybox1.toObject()["url"].toString();
 
     ui->upgradeStatus ->setText(tr("downloading firmware :") + latestVersion);
-    mNetworkManager.get(QNetworkRequest(QUrl(firmwareUrl)));
+    firmwareReply = mNetworkManager.get(QNetworkRequest(QUrl(firmwareUrl)));
+    connect(firmwareReply, &QNetworkReply::downloadProgress, this, &MainWindow::downloadProgress);
     return;
   }
   // a firmware in this case
   QString firmwareFile = getSaveFileName(reply->url());
 
   if( saveToDisk(firmwareFile, reply) ){
+      ui->upgradeProcess->setValue(0);
       mUpgradeFilePath = firmwareFile;
-      ui->fileNameEdit->setText(mUpgradeFilePath);
-      ui->fileNameEdit->setEnabled(false);
+      upgradeFileSelected();
       upgrade();
   }
   else {
@@ -131,8 +137,17 @@ void MainWindow::downloadError(QNetworkReply::NetworkError code)
 
 void MainWindow::selectUpgradeFile()
 {
-    mUpgradeFilePath = QFileDialog::getOpenFileName(this, tr("Select upgrade file"));
-    auto parts = mUpgradeFilePath.split(QDir::separator());
+    auto oldPath = mUpgradeFilePath;
+    mUpgradeFilePath = QFileDialog::getOpenFileName(this, tr("Select upgrade file"),mUpgradeFilePath);
+    if( mUpgradeFilePath.isNull()) {
+        mUpgradeFilePath = oldPath;
+    }
+    upgradeFileSelected();
+}
+
+void MainWindow::upgradeFileSelected()
+{
+    auto parts = mUpgradeFilePath.split('/');
     auto fileName = parts[parts.size() - 1];
     ui->fileNameEdit->setText(fileName);
     ui->fileNameEdit->setEnabled(false);
@@ -166,6 +181,16 @@ void MainWindow::upgrade()
 
     mThread->start();
 }
+
+void MainWindow::downloadProgress(qint64 bytesReceived, qint64 bytesTotal)
+{
+
+    int progress =  float(bytesReceived) *100 / bytesTotal;
+    qDebug() << "bytes:" << bytesReceived << bytesTotal << progress;
+    ui->upgradeProcess->setValue(progress);
+    update();
+}
+
 
 void MainWindow::upgradeStatusChanged(const UpgradeThread::UpgradeProgress & progress)
 {
